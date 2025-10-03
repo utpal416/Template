@@ -1,0 +1,37 @@
+---
+plugin: rest
+path: /v1/items
+method: GET
+staticResponse:
+  statusCode: 200
+  content: |
+    {
+      "items": [
+        { "id": 1, "name": "alpha" },
+        { "id": 2, "name": "beta" }
+      ]
+    }
+
+---
+plugin: rest
+path: /v1/items
+method: POST
+staticResponse:
+  statusCode: 201
+  content: |
+    {
+      "id": 123,
+      "name": "mocked-item"
+    }
+
+---
+plugin: rest
+path: /v1/items/{id}
+method: GET
+staticResponse:
+  statusCode: 200
+  content: |
+    {
+      "id": "{{ request.pathParameters.id }}",
+      "name": "mocked-item"
+    }
