@@ -1,0 +1,36 @@
+# rest-mocks-config.yaml
+---
+plugin: rest
+name: simple-rest-mocks
+# GET /v1/items
+path: /v1/items
+method: GET
+response:
+  status: 200
+  body:
+    items:
+      - id: 1
+        name: "alpha"
+      - id: 2
+        name: "beta"
+
+---
+plugin: rest
+name: item-create
+path: /v1/items
+method: POST
+response:
+  status: 201
+  file: responses/item-created.json   # or inline body
+
+---
+plugin: rest
+name: simple-get-by-id
+path: /v1/items/{id}
+method: GET
+response:
+  status: 200
+  # template can echo back path param
+  body:
+    id: "{{ request.pathParameters.id }}"
+    name: "mocked-item"
