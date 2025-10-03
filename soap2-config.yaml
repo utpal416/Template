@@ -1,0 +1,11 @@
+# soap1-config.yaml
+---
+plugin: soap
+name: CountryInfoService-mock1
+# either a local wsdl reference (when bundling) or URL/relative path included in S3
+wsdl: ./wsdls/CountryInfoService1.wsdl
+# optional path override; imposter will expose endpoints per WSDL binding
+# path: /soap/country
+response:
+  # default: generated from schema, you can override with a template file
+  file: responses/countryInfoResponse1.xml
