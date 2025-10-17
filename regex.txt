@@ -1,0 +1,1 @@
+requestBody.match(/<(?:\w+:)?account[lI]d>([^<]+)<\/(?:\w+:)?account[lI]d>/i);
