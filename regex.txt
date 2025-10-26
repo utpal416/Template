@@ -1,1 +1,51 @@
 requestBody.match(/<(?:\w+:)?account[lI]d>([^<]+)<\/(?:\w+:)?account[lI]d>/i);
+
+
+import csv
+import subprocess
+import json
+
+# Configuration - update these values for your Lex bot
+BOT_ID = 'your-bot-id'
+BOT_ALIAS_ID = 'your-bot-alias-id'
+LOCALE_ID = 'en_US'
+SESSION_ID = 'bulk-test-session'
+
+input_csv_file = 'utterances.csv'
+output_csv_file = 'results.csv'
+
+def test_utterance(utterance):
+    cmd = [
+        'aws', 'lexv2-runtime', 'recognize-text',
+        '--bot-id', BOT_ID,
+        '--bot-alias-id', BOT_ALIAS_ID,
+        '--locale-id', LOCALE_ID,
+        '--session-id', SESSION_ID,
+        '--text', utterance
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        response = json.loads(result.stdout)
+        # Check if the bot recognized an intent
+        interpretations = response.get('interpretations', [])
+        if interpretations and interpretations[0].get('intent'):
+            intent = interpretations[0]['intent']['name']
+            recognized = 'Yes'
+        else:
+            intent = ''
+            recognized = 'No'
+        return intent, recognized, json.dumps(response)
+    except Exception as e:
+        return '', 'Error', str(e)
+
+# Read utterances and test them in bulk
+with open(input_csv_file, newline='', encoding='utf-8') as infile, \
+     open(output_csv_file, 'w', newline='', encoding='utf-8') as outfile:
+    reader = csv.reader(infile)
+    writer = csv.writer(outfile)
+    writer.writerow(['Utterance', 'Recognized Intent', 'Recognized', 'Lex Response'])
+    for row in reader:
+        utterance = row[0]
+        intent, recognized, response = test_utterance(utterance)
+        writer.writerow([utterance, intent, recognized, response])
+
