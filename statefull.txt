@@ -1,0 +1,184 @@
+---
+plugin: rest
+
+# API 1: Unblock Device
+- path: /v1/api/cards/accounts/:accountId/devices/:deviceId/unblock-device
+  method: POST
+  response:
+    statusCode: 200
+    headers:
+      Content-Type: application/json
+    scriptFile: card-unblock-script.js
+
+# API 2: Get Control Status
+- path: /v1/api/cards/accounts/:accountId/devices/:deviceId/control-status
+  method: GET
+  response:
+    statusCode: 200
+    headers:
+      Content-Type: application/json
+    scriptFile: card-status-script.js
+
+# API 3: Block Device
+- path: /v1/api/cards/accounts/:accountId/devices/:deviceId/block-device
+  method: POST
+  response:
+    statusCode: 202
+    headers:
+      Content-Type: application/json
+    scriptFile: card-block-script.js
+
+-----------------unblock.js
+
+    // ============================================
+// UNBLOCK DEVICE API - Sets card to UNBLOCKED state
+// ============================================
+
+// Extract path parameters
+var accountId = context.request.pathParams.accountId || "";
+var deviceId = context.request.pathParams.deviceId || "";
+
+// Create storage key
+var stateKey = "card-state-" + accountId + "-" + deviceId;
+
+// Generate UUID for this operation
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+var operationId = generateUUID();
+
+// Store the unblocked state
+var cardState = {
+    "status": "COMPLETED",
+    "cardBlock": "OFF",
+    "operationId": operationId
+};
+
+// Save state to store
+stores.save(stateKey, JSON.stringify(cardState));
+
+// Return 200 OK response
+var response = {
+    "data": {
+        "id": operationId,
+        "type": "unblockDeviceV1",
+        "attributes": {
+            "status": "COMPLETED",
+            "cardBlock": "OFF"
+        }
+    }
+};
+
+respond()
+    .withStatusCode(200)
+    .withHeader("Content-Type", "application/json")
+    .withContent(JSON.stringify(response, null, 2));
+
+    ---------------- card block 
+
+    // ============================================
+// BLOCK DEVICE API - Sets card to BLOCKED state
+// ============================================
+
+// Extract path parameters
+var accountId = context.request.pathParams.accountId || "";
+var deviceId = context.request.pathParams.deviceId || "";
+
+// Create storage key
+var stateKey = "card-state-" + accountId + "-" + deviceId;
+
+// Generate UUID for this operation
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+var operationId = generateUUID();
+
+// Store the blocked state
+var cardState = {
+    "status": "COMPLETED",
+    "cardBlock": "ON",
+    "operationId": operationId
+};
+
+// Save state to store
+stores.save(stateKey, JSON.stringify(cardState));
+
+// Return 202 Accepted response
+var response = {
+    "data": {
+        "id": operationId,
+        "type": "blockDeviceV1",
+        "attributes": {
+            "status": "ACCEPTED"
+        }
+    }
+};
+
+respond()
+    .withStatusCode(202)
+    .withHeader("Content-Type", "application/json")
+    .withContent(JSON.stringify(response, null, 2));
+
+
+    ------------------card control
+    // ============================================
+// GET CONTROL STATUS API - Returns current card state
+// ============================================
+
+// Extract path parameters
+var accountId = context.request.pathParams.accountId || "";
+var deviceId = context.request.pathParams.deviceId || "";
+
+// Create storage key
+var stateKey = "card-state-" + accountId + "-" + deviceId;
+
+// Default state (unblocked) if no previous state exists
+var defaultState = {
+    "status": "COMPLETED",
+    "cardBlock": "OFF",
+    "operationId": "00000000-0000-0000-0000-000000000000"
+};
+
+// Retrieve state from store
+var storedState = stores.load(stateKey);
+var cardState;
+
+if (storedState) {
+    try {
+        cardState = JSON.parse(storedState);
+    } catch (e) {
+        cardState = defaultState;
+    }
+} else {
+    cardState = defaultState;
+}
+
+// Build response
+var response = {
+    "data": {
+        "id": cardState.operationId,
+        "type": "getControlStatusV1",
+        "attributes": {
+            "status": cardState.status,
+            "cardBlock": cardState.cardBlock
+        }
+    }
+};
+
+respond()
+    .withStatusCode(200)
+    .withHeader("Content-Type", "application/json")
+    .withContent(JSON.stringify(response, null, 2));
+
+
+
