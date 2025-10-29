@@ -181,4 +181,131 @@ respond()
     .withContent(JSON.stringify(response, null, 2));
 
 
+__________
 
+// Extract path parameters
+const customerId = context.request.pathParams.customerId;
+const accountId = context.request.pathParams.accountId;
+
+// Get query parameters for pagination (optional)
+const queryParams = context.request.queryParams;
+const page = queryParams.page ? parseInt(queryParams.page) : 1;
+const pageSize = queryParams.pageSize ? parseInt(queryParams.pageSize) : 20;
+
+// Retrieve stored payments
+const storeKey = customerId + '-' + accountId;
+const store = stores.open('payments-store');
+const storedData = store.load(storeKey);
+
+let payments = [];
+if (storedData) {
+    payments = JSON.parse(storedData);
+}
+
+// Calculate pagination
+const totalElements = payments.length;
+const totalPages = Math.ceil(totalElements / pageSize);
+const startIndex = (page - 1) * pageSize;
+const endIndex = Math.min(startIndex + pageSize, totalElements);
+const pagedPayments = payments.slice(startIndex, endIndex);
+
+// Build response
+const response = {
+    meta: {
+        totalElements: totalElements,
+        totalPages: totalPages,
+        pageSize: pageSize,
+        pageNumber: page,
+        numberOfElements: pagedPayments.length
+    },
+    data: pagedPayments,
+    links: {
+        self: '/customers/' + customerId + '/consumerCardAccounts/' + accountId + '/payments?page=' + page,
+        first: '/customers/' + customerId + '/consumerCardAccounts/' + accountId + '/payments?page=1',
+        last: '/customers/' + customerId + '/consumerCardAccounts/' + accountId + '/payments?page=' + totalPages
+    }
+};
+
+// Send response
+respond()
+    .withStatusCode(200)
+    .withData(JSON.stringify(response))
+    .withHeader('Content-Type', 'application/json');
+
+_________
+
+// Extract path parameters
+const customerId = context.request.pathParams.customerId;
+const accountId = context.request.pathParams.accountId;
+
+// Parse request body
+const requestBody = JSON.parse(context.request.body);
+const attributes = requestBody.data.attributes;
+
+// Generate payment ID and reference number
+const timestamp = new Date().getTime();
+const paymentId = '' + (10000000 + Math.floor(Math.random() * 90000000));
+const referenceNumber = '' + (1000000000 + Math.floor(Math.random() * 900000000));
+
+// Create current timestamp in required format
+const now = new Date();
+const requestedOn = now.toISOString().replace('Z', '-0400');
+
+// Build payment object
+const payment = {
+    id: paymentId,
+    type: requestBody.data.type,
+    attributes: {
+        paymentId: paymentId,
+        fromAccount: "BOFAM",
+        paymentReferenceNumber: referenceNumber,
+        amount: {
+            currency: attributes.amount.currency,
+            amount: attributes.amount.amount
+        },
+        requestedOn: requestedOn,
+        paymentDate: attributes.paymentDate,
+        statusUpdateDate: attributes.paymentDate,
+        status: "SCHEDULED",
+        channel: "PHONE",
+        projectedCreditDate: getNextDay(attributes.paymentDate),
+        isInternalPayment: true,
+        paymentOptionType: attributes.optionType,
+        externalAccountType: "CHECKING",
+        externalAccountId: attributes.externalAccountId
+    }
+};
+
+// Helper function to get next day
+function getNextDay(dateStr) {
+    const date = new Date(dateStr);
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().split('T')[0];
+}
+
+// Store the payment
+const storeKey = customerId + '-' + accountId;
+const store = stores.open('payments-store');
+const existingData = store.load(storeKey);
+
+let payments = [];
+if (existingData) {
+    payments = JSON.parse(existingData);
+}
+
+payments.push(payment);
+store.save(storeKey, JSON.stringify(payments));
+
+// Build response
+const response = {
+    data: payment,
+    links: {
+        self: '/customers/' + customerId + '/consumerCardAccounts/' + accountId + '/payments/' + paymentId
+    }
+};
+
+// Send response
+respond()
+    .withStatusCode(201)
+    .withData(JSON.stringify(response))
+    .withHeader('Content-Type', 'application/json');
