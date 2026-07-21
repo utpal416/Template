@@ -1,0 +1,276 @@
+I am an IVR developer. Deploy IVR using amazon connect. Know lambda, dynamo db etc. AWS certified developer associate as well. Now there is a project about to start to create Agentic AI in IVR. as a POC purpose, Bedroom agent core will be used. activation journey is selected. When i want to jump to do the same , l was told by a manager that AI agents will be created in Model execution account. An amazon connect account will simply call it. And his guys will be creating Agent. So in that case. What skillset i need to claim that work. Suggest a certification as well.
+Your manager's setup is actually a very standard, clean architectural pattern. Separating the Model Execution / Core AI into a dedicated AWS account while letting Amazon Connect handle the orchestration and voice/chat channel keeps things secure and decoupled.
+Because "his guys" are building the actual agent inside the Bedrock core, they are handling the prompt engineering, model selection, and internal agentic reasoning. However, they cannot make the agent work in production without you. An AI agent in isolation is just a brain with no hands or mouth.
+As the IVR and backend developer, you own the handshake, the invocation, and the execution of the agent's real-world actions. Here is the skillset you need to claim to secure your place in this project, along with the ideal certification path.
+1. The Skillsets You Need to Claim
+To stake your claim on this POC, position yourself as the Orchestration, Integration, and Tooling Engineer. You don't need to build the model; you need to make the model useful to Amazon Connect.
+Amazon Connect AI Orchestration
+Agentic Handshakes: You need to know how to use the Amazon Connect "Call AWS Lambda function" contact flow block to securely invoke the Bedrock Agent in the Model Execution account (handling cross-account IAM roles).
+State & Session Management: Passing the ContactId or SessionId back and forth so the AI Agent maintains context over the voice call or chat activation journey.
+DTMF / Speech Fallbacks: Handling what happens when the agent fails, times out, or when a user presses a digit instead of talking.
+"Tool" and Action Group Development (Your Sweet Spot)
+Agents use Action Groups (functions the agent can call when it needs to interact with the real world). If the Bedrock Agent needs to look up a customer's account in DynamoDB or trigger the "activation journey" in a backend system, it relies on a Lambda function.
+Your Claim: “I will design and build the Lambda-based Action Groups/Tools that the Bedrock agent requires to execute the activation journey.” They build the brain; you build the hands.
+Guardrails and Parsing
+Handling the JSON payloads coming back from the Model Execution account, parsing the text-to-speech output, and routing the customer to a human agent if the AI agent triggers an escalation flag.
+2. Recommended Certification
+Given that you are already an AWS Certified Developer Associate, skipping the basic AI practitioner exams is the right move. The definitive certification to target is:
+AWS Certified Generative AI Developer – Professional
+This exam specifically bridges the gap between raw Foundation Models and production-grade applications. It is tailored for developers who use Amazon Bedrock, Knowledge Bases, and Agents to build real business workflows.  
+Whizlabs
++ 1
+Why it helps you here: It specifically validates your ability to build Agents, Guardrails, and Action Group integrations using Bedrock.
+The Pitch to Your Manager: "I'm prepping for the AWS GenAI Developer Professional cert so I can seamlessly handle the Connect-to-Bedrock integration, cross-account security, and Lambda action groups for the activation journey."
+How to Pitch Your Involvement Tomorrow
+Instead of fighting for ownership of the model itself, claim ownership of the integration architecture. You can tell your manager:
+"Great choice on separating the Model Execution account. Since your team is focusing on configuring the Bedrock Agent core, I will own the Integration and Fulfillment layer. I’ll handle the cross-account Lambda orchestration from Amazon Connect, map the session tokens, and build the Lambda Action Groups that allow the Bedrock Agent to safely interact with our DynamoDB and backend activation services."
+Can you generate an architecture design with 2 different accounts. What part will be in which account. What works involved etc
+A professional AWS architectural diagram illustrating a cross-account Amazon Connect and Bedrock Agentic AI integration for an "Activation Journey" POC. The diagram is split into two distinct rectangular sections, clearly labeled "AWS ACCOUNT 1: IVR & ORCHESTRATION (IVR Developer Team)" on the left and "AWS ACCOUNT 2: MODEL EXECUTION & AI AGENT (AI Team)" on the right. Both accounts have distinct visual boundaries and AWS logo icons.
+
+On the left (Account 1): A large icon for "Amazon Connect" has three main paths. 1. "CUSTOMER VOICE/CHAT" points to an icon labeled "CONTACT FLOW," which then points to a "CALL AWS LAMBDA FUNCTION" icon. A label points to this whole process: "CONTACT FLOW ORCHESTRATION (IVR Skillset)." 2. "CUSTOMER DATA" points to a "DYNAMO DB" icon, labeled "CUSTOMER STATE." A curved arrow shows "CONTEXT PASSING." 3. "FULFILLMENT REQUEST" points from the Lambda function to Account 2. The cross-account connection is highlighted with a dashed line and a lock icon: "IAM ROLE TRANSITION (CROSS-ACCOUNT ACCESS)."
+
+On the right (Account 2): An "IAM ROLE (Bedrock Exec. Role)" is at the entry. An arrow leads to a central "AMAZON BEDROCK AGENT" icon. This Agent has an arrow pointing to "MODEL SELECTION & PROMPT ENGINEERING (Claude v2.1/Titan)," labeled "AGENTIC AI CORE (AI Team Skillset)." The Agent also has an arrow to a "KNOWLEDGE BASE (S3)" icon, labeled "RAG DATA." Finally, a circular arrow loop shows "TOOL USE/ACTION GROUPS" and points back to "FULFILLMENT REQUEST" in Account 1. This loop is labeled: "ACTION GROUP INVOCATION (IVR Developer Skillset)."
+
+Below the accounts, a separate section with large headers summarizes: "IVR DEVELOPER WORKSET:" (Connecting Flows, Cross-Account IAM, State Management, Fulfillment Lambdas, Parsing Bedrock JSON Output) and "AI TEAM WORKSET:" (Bedrock Agent Config, Prompt Design, Knowledge Base Setup, Guardrails). The entire diagram uses standard AWS icons (orange, blue, and gray colors) with a clean, grid-based layout and simple, clear typography., AI generated, AI generated
+My IVR support various partner ls like GAP, American Airtel, priceline etc around 20 partnes and have to address correctly based on respective customers . Where those IVR prompts will be configured? Those are new prompts and keep changing based on partner onboarding/offloading etc. who should be doing that ?? How can be streamlining the process or changes and release etc
+Managing multi-tenant branding and frequently changing greetings/prompts for 20+ different corporate partners (GAP, Airtel, Priceline, etc.) is a classic architecture challenge.
+If you hardcode these prompts inside individual Contact Flows or directly within the AI model’s core instructions, your release lifecycle will become a nightmare, and your manager's AI team will constantly break your IVR code.
+To streamline this, you must separate the dynamic data (prompts/branding) from the engine (the IVR code and AI Model).
+1. Where should these prompts be configured? (The Architecture)
+You should store and configure these prompts in a Dynamic Configuration Database inside your IVR & Orchestration Account.
+The Setup:
+Dynamically Identify the Partner: When a call enters Amazon Connect, you look at the DNIS (the specific phone number the customer dialed) or an incoming account attribute. This instantly identifies the partner (e.g., PartnerID: GAP).
+The Data Store (DynamoDB): You maintain a Partner_Config table in DynamoDB.
+The Prompt Ingestion Layer: Instead of hardcoding text, your Connect Contact Flow calls a Lambda function at the very beginning of the call. Lambda fetches the exact verbiage, branding guidelines, and tone requirements for that specific partner from DynamoDB.
+[Customer Calls GAP Line] 
+       │
+       ▼
+[Amazon Connect] ──(Passes DNIS/Partner ID)──► [Your Lambda]
+       ▲                                            │
+       │ (Returns: "Welcome to GAP...")            ▼
+[Contact Flow] ◄───────────────────────── [DynamoDB Config Table]
+       │
+       ▼
+[Passes Partner Context to Bedrock Agent]
+Feeding it to the AI Agent:
+When your Connect Lambda invokes the Bedrock Agent in the Model Execution account, it passes these partner-specific parameters as Session Attributes or Runtime Context.
+Example Payload Sent to Bedrock:
+"You are currently assisting a GAP customer. The allowed greeting is: 'Thank you for calling GAP support. How can I assist with your order today?' Do not mention any other brands."
+2. Who should be doing what? (Role Separation)
+To keep teams from stepping on each other's toes, divide the labor cleanly:
+Business Operations / Product Managers (The "What"): They own the actual text. When GAP changes their marketing greeting, a business user should change it—not a developer.
+You - IVR Developer (The "How"): You build the database schema, the Lambda retrieval logic, and ensure Amazon Connect reads the text dynamically via Text-to-Speech (TTS) or passes it cleanly to Bedrock.
+The AI Team (The "Reasoning"): They write the system prompt that instructs the model to respect the runtime partner context variables passed by your Lambda. They do not touch the actual partner text files.
+3. How to Streamline Changes and Releases
+To prevent a partner onboarding or offloading from requiring a full production code deployment, use a Decoupled Configuration & Content Lifecycle.
+Step A: Build a Low-Code Admin Portal (For Managing Content)
+Do not let business teams edit DynamoDB directly. Build a simple internal frontend UI (or a secure, version-controlled repository) where account managers can update greetings.
+Onboarding a new partner (e.g., Nike): The business team fills out a form in the portal: Partner ID: NIKE, Greeting: Hello Nike Customer.... They hit "Save." It writes to DynamoDB. Zero lines of IVR code are changed.
+Offloading a partner: Flip a status flag in the database from Active to Inactive. If a customer calls that line, your IVR instantly routes them to a generic graceful closure message.
+Step B: CI/CD and Version Control for AI Prompts (GitOps)
+For the prompts that do affect how the Bedrock Agent behaves, implement a GitOps pipeline:
+Prompts as Code: Store prompt templates in a Git repository (e.g., AWS CodeCommit or GitHub).
+Automated Testing: When the AI team alters an agent prompt structure, a pipeline automatically runs a suite of test scripts (using mock customer inputs) to ensure the agent doesn't hallucinate or leak Airtel data to a Priceline customer.
+Bedrock Aliases: Never point Amazon Connect directly to the $LATEST version of a Bedrock Agent. Use Bedrock Agent Aliases (e.g., prod-v2). When a new version of the agent is ready and thoroughly tested, you shift the traffic alias from v1 to v2 seamlessly without touching your Amazon Connect Contact Flows.
+Current IVR is using Lex to capture customers intent and polly to play the prompts. Where those things will go?? Or will be required or not
+Moving from a traditional IVR to an Agentic AI architecture dramatically shifts the responsibilities of Lex and Polly.
+They are absolutely still required, but their roles change completely. Instead of being the "brains" of the conversation, they become the "ears, mouth, and nervous system" that connect the caller to the Bedrock Agent.
+1. What Happens to Amazon Lex?
+In your current IVR, Lex does the heavy lifting of Natural Language Understanding (NLU): it listens to a phrase, matches it to an intent (e.g., ActivateCardIntent), and collects slots.
+In the new Agentic AI architecture, the Bedrock Agent handles the reasoning and intent discovery. Lex changes roles depending on which integration path you choose:
+Path A: Lex as the "Streaming Conduit" (Most Common Integration)
+You do not build complex intents or slots in Lex anymore. Instead, you create a fallback or catch-all intent (like the built-in AMAZON.FallbackIntent or AMAZON.BedrockAgentIntent).
+The New Job for Lex: It acts purely as the Automated Speech Recognition (ASR) engine. It streams the customer's voice audio, converts it to raw text, and passes that exact text to your integration Lambda.
+Where it goes: It stays in your IVR & Orchestration Account, embedded inside the Connect Contact Flows via the Get customer input block.
+Path B: Bypassing Lex Entirely (Direct Connect-to-Bedrock via Contact Flows)
+If you are using Amazon Connect's latest native features, you can stream customer speech directly to an orchestration Lambda function or use direct Connect blocks that invoke AI targets without maintaining a separate Lex bot entity at all.
+Summary for Lex: You will drastically strip down your Lex bots. You go from managing hundreds of sample utterances and slots to managing a single stream that passes raw text to Bedrock.
+2. What Happens to Amazon Polly?
+Amazon Polly is 100% required and stays right where it is, but how it gets its text changes completely.
+Before: Polly reads hardcoded text prompts that you typed directly into the Amazon Connect Contact Flow blocks (e.g., <speak>Please state the reason for your call.</speak>).
+After: Polly becomes dynamic. When the Bedrock Agent processes a turn in the conversation, it outputs a JSON payload containing the text response it wants to say to the customer (e.g., "I have successfully activated your GAP card, Utpal. Is there anything else?").
+Where it goes: Your orchestration Lambda receives this text string from the Model Execution account, parses it, and hands it to Amazon Connect's text-to-speech engine. Polly synthesizes that dynamic AI text into speech in real time.
+The New Blueprint: How It Flows Together
+Here is exactly how Lex, Polly, Connect, and Bedrock collaborate during a live call:
+[ Customer Speaks ]
+       │
+       ▼
+1. Amazon Connect (Captures audio)
+       │
+       ▼
+2. Amazon Lex (Acts as the "Ears" — converts speech to raw text string)
+       │
+       ▼
+3. Orchestration Lambda (Picks up text string + passes it cross-account)
+       │
+       ▼
+4. Amazon Bedrock Agent (The "Brain" — thinks, decides intent, generates text response)
+       │
+       ▼
+5. Orchestration Lambda (Receives the dynamic text response)
+       │
+       ▼
+6. Amazon Connect + Polly (Acts as the "Mouth" — speaks the dynamic text back to user)
+Who builds what here?
+Because Lex and Polly sit inside the IVR & Orchestration Account and connect directly to the contact flows, this remains entirely your ownership. The AI team will simply expect you to pass them clean text strings and handle the text outputs they send back.
+Who should control or change the prompt?? Any new requirements come both team should be working together?
+When a new requirement hits the pipeline, it can easily lead to a turf war if ownership boundaries aren't clearly drawn. Because the system prompt dictates the model's core behavior, but your dynamic backend configuration dictates the partner's parameters, managing changes must be a structured, collaborative effort.
+The prompt should not be treated as a single monolith. Instead, think of it as two separate layers: The Core Logic and The Partner Metadata.
+1. Who Should Control or Change the Prompt?
+Prompt Layer	What it Contains	Who Controls It?
+The Core System Prompt
+
+(The "Brain")
+Behavioral constraints, reasoning rules, safety parameters, escalation thresholds, and instruction on how to handle variables.	The AI Team
+The Dynamic Content / Prompt Variables
+
+(The "Context")
+The specific texts, partner greetings, campaign details, vocabulary rules, and legal disclosures for GAP, Airtel, Priceline, etc.	You (IVR Developer) / Business Operations
+The Separation Rule:
+The AI Team writes the template, and you feed it the data.
+The AI team should configure a single, standardized core prompt inside the Bedrock Agent that looks like this:
+"You are an IVR AI Assistant for our partner, $PartnerName. You must greet the customer using exactly the following text: $PartnerGreeting. If the customer asks to cancel their account, follow the rules specified in $CancellationPolicy."
+The AI team owns that template. They deploy it once. You control the values of $PartnerName, $PartnerGreeting, and $CancellationPolicy by pulling them dynamically from your DynamoDB table at the start of the call and injecting them into the Bedrock session context.
+If GAP wants to change their greeting tomorrow, no one touches the Bedrock prompt. You or a business manager simply update the GAP row in your database.
+2. When a New Requirement Arrives, How Do the Teams Work Together?
+Yes, both teams must work together, but with a strictly defined workflow. New requirements usually fall into two categories. Here is how your joint workflow should look:
+Scenario A: A Brand New Partner Joins (e.g., Starbucks)
+Your Work: You provision a new incoming phone number (DNIS) in Amazon Connect, map it to a new entry in your DynamoDB configuration table, and write the Starbucks-specific greeting and data parameters into the database.
+AI Team's Work: None. As long as the core Bedrock template understands how to read your session variables, onboarding a new partner is entirely an IVR configuration task.
+Scenario B: A Change in AI Behavior (e.g., "The Agent must now collect a 6-digit PIN for Airtel before activating")
+This requires tight, cross-team synchronization because it introduces a new Action Group (Tool).
+Joint Architectural Design: Both teams meet to define the input/output schema. What exact data does the Bedrock agent need to send, and what will your backend Lambda return?
+The AI Team Builds the Logic: They update the Bedrock Core prompt to say: "If the partner is Airtel, you must invoke the CollectPIN tool before proceeding to activation."
+You Build the Execution: You write the backend Lambda function that securely validates that 6-digit PIN against the Airtel database and updates the session state.
+Coordinated Deployment: The AI Team deploys their new Bedrock Agent version code to a staging alias, while you deploy your new Lambda function code to a staging environment. You run a joint integration test before promoting both to production.
+How to Establish this Standard with Your Manager
+To prevent the AI team from attempting to hardcode 20 different partner variations into the Bedrock prompt layer, propose this operating model to your manager right away:
+"To keep our deployment pipeline agile, let's establish a clear boundaries model. The AI team can own the Core Agentic Prompt Architecture (the system template), while the IVR team owns the Dynamic Runtime Context via DynamoDB. This ensures that when a partner changes a greeting or a new brand boards, we can update it instantly via database configurations without requiring the AI team to re-release or re-test the core Bedrock agent model."
+Can you include the lex/polly , contact flow etc in the high level architectural diagrams
+A detailed, high-level AWS architectural diagram illustrating the complete "Activation Journey" POC, including Lex and Polly. The diagram is split into two prominent rectangular sections, clearly labeled "AWS ACCOUNT 1: IVR & ORCHESTRATION (IVR Developer Team)" on the left and "AWS ACCOUNT 2: MODEL EXECUTION & AI AGENT (AI Team)" on the right. Both sections have distinct visual boundaries and prominent AWS logo icons. A title at the top reads: "FULL ARCHITECTURAL FLOW: AMAZON CONNECT, LEX, POLLY & BEDROCK INTEGRATION."
+
+Within Account 1 (IVR & Orchestration), on the far left, a "CUSTOMER CALL/CHAT" icon points to a large "AMAZON CONNECT INSTANCE" icon. Inside the Connect Instance, a detailed box shows the "CONTACT FLOW ORCHESTRATION." This flow includes:
+1. "ENTRY POINT & PARTNER ID (DNIS/Account)" which calls a small Lambda to query "DYNAMO DB: PARTNER CONFIG" (e.g., GAP, Airtel, Nike text).
+2. "GET CUSTOMER INPUT" block, which is visually connected to a separate "AMAZON LEX V2 BOT (Fallback Intent)" icon with a stream symbol. This is labeled "LEX (ASR) converts Speech to Text."
+3. An arrow goes from the "GET CUSTOMER INPUT" block to the next block, "INVOKE INTEGRATION LAMBDA."
+4. Below this flow, a "PLAY PROMPT/TTS" block is visually connected to an "AMAZON POLLY (Neural TTS)" icon. Polly is shown receiving a Text string from the "PARSE RESPONSE" Lambda.
+
+On the far right of Account 1, the "INTEGRATION LAMBDA" function is shown sending a "BEDROCK AGENT REQUEST" (including Raw Text and Partner Context from DynamoDB) across the account boundary via a solid line labeled "CROSS-ACCOUNT IAM (Role Transition & REST API)."
+
+In Account 2 (Model Execution), on the right side, the request enters via "IAM ROLE (Bedrock Exec. Role)." An arrow leads to a central "AMAZON BEDROCK AGENT" icon. This Agent has an arrow to "FOUNDATION MODEL (Claude 3 / Titan)" and another arrow to "KNOWLEDGE BASE (S3)" (labeled "RAG Data"). The Bedrock Agent is also connected to a circular arrow loop labeled "TOOL USE/ACTION GROUPS" which has an arrow pointing back to "VALIDATE PIN / ACTIVATE ACCOUNT (Backend Lambda in Acct 1)" labeled "FULFILLMENT REQUEST." The Bedrock Agent sends its response text back via the request line to the "PARSE RESPONSE" Lambda in Account 1.
+
+The overall diagram uses distinct colored AWS icons (orange, blue, green), bold labels, and clear arrows with text summaries on the lines. The flow is easy to trace, from customer input to Lex to Lambda to Bedrock and back via Polly. It has a clean, professional, grid-based presentation., AI generated, AI generated
+What the benifit i am getting by this AI agents because right now , current IVR is providing self serve option. 64% calls are retained in IVR and rest transfer to agents.
+Retaining 64% of your calls inside a traditional IVR is actually a very solid, impressive metric for a standard Lex/Polly setup. It means your current deterministic flows (menus, simple data dips like account balances, and structured forms) are well-optimized.
+However, if your current IVR is already doing a great job at the basic, predictable tasks, moving to an Agentic AI architecture isn't about maintaining that 64%; it’s about capturing the remaining 36% and fundamentally changing the user experience.
+An Agentic AI IVR provides specific, measurable advancements over a standard Lex/Polly self-service setup:
+1. Moving from "Routing" to "Resolution"
+Traditional Lex bots are strictly linear and intent-bound. Lex expects the customer to answer specific prompts in a specific order to fill "slots" (e.g., Prompt 1: First Name → Prompt 2: Account Number). If a customer deviates, goes off-script, or asks an unrelated question mid-flow, Lex often breaks, hits a fallback, and transfers the call to a human agent.
+The AI Agent Benefit: Bedrock Agents use Large Language Models (LLMs) that understand unstructured, real-world human conversation. A customer can say: "Hey, I want to activate my GAP card, but honestly I forgot my account number and I'm currently walking my dog so I might be a bit distracted."
+The Outcome: The AI Agent can handle that messy context, temporarily pivot to look up the account using their phone number, handle the interruption, and seamlessly jump back to the activation journey without failing. This pushes your containment rate beyond 64% by capturing the "messy" callers who usually drop out of traditional IVRs.
+2. Eliminating Menu Fatigue and Cognitive Load
+With 20+ partners (GAP, Airtel, Priceline), a traditional IVR requires maintaining massive branching trees, distinct sub-menus, or complex Lex bot permutations to ensure customers are handled correctly based on their brand. Callers have to listen to options and adapt to the machine.
+The AI Agent Benefit: The AI agent completely flips the control dynamic—the system adapts to the user. Because you feed the partner context (via your DynamoDB design) straight into the agent's brain at the start of the call, the agent instantly adopts that brand's specific persona, vocabulary, boundaries, and logic natively. The customer just speaks naturally, and the agent resolves the issue immediately without making them navigate deep menu trees.
+3. Drastic Reduction in Professional Services & Maintenance Costs
+Think about how much effort it takes your team today to onboard a single new partner or add a new self-service feature. You have to build new Lex intents, record or configure new Polly prompts, script validation Lambda functions, and redeploy code.
+The AI Agent Benefit: To add a new self-service capability (e.g., allowing customers to check order tracking status), you don't build new code paths. You simply attach an API "Tool" (Action Group Lambda) to the Bedrock Agent. The agent inherently figures out when and how to use it based on the flow of the conversation. You go from writing rigid, thousands-of-lines-long decision trees to managing a plug-and-play toolkit.
+4. Hyper-Personalization and Deep Data Integration
+Traditional Lex can handle simple data entries (like reading back a balance), but it struggles with complex reasoning over backend data.
+The AI Agent Benefit: By combining Bedrock Agents with a Knowledge Base (RAG), the agent can cross-reference the customer’s profile, past interaction history, and the specific partner’s current FAQs or dynamic business rules in real time.
+Example: If a Priceline customer calls, the agent doesn't just run an activation flow; it can see that their flight was delayed 2 hours ago and proactively say: "I see you're calling about your booking to Chicago. I can help activate your travel profile, and by the way, would you like me to look at your delayed flight options while we're at it?"
+Summary for Your Business Case
+Your current IVR is a gatekeeper that deflects 64% of predictable traffic. The Agentic AI IVR is an automated workforce designed to intelligently resolve the remaining 36% of complex, multi-turn, contextual interactions that currently cost your business massive amounts of money in human agent handling time.
+ok . create stories like total 50 points ( like 3 points , 5 points stories etc) . I will be working only on connect account and co oridination with model team .
+Here is a complete, production-ready Agile Backlog totaling 50 Story Points across 10 well-defined user stories.
+These stories are strictly scoped to your side of the fence: the Amazon Connect / IVR Account, cross-account orchestration, partner dynamic configuration, Lex/Polly integration, and coordination with the AI Model team.
+Sprint Backlog Summary
+Story ID	Title	Points
+US-01	Cross-Account IAM & Integration Lambda Setup	5
+US-02	DynamoDB Partner Configuration Schema & Lookup	3
+US-03	Amazon Lex V2 Audio Streaming Catch-All Bot	5
+US-04	Master Contact Flow Orchestration & Partner Ingestion	8
+US-05	Cross-Account Bedrock Agent Invocation & Payload Mapping	8
+US-06	Bedrock Response Parsing & Polly TTS Playback	5
+US-07	Joint Contract Schema Definition for Bedrock Action Groups	3
+US-08	Session Context & Call State Management	5
+US-09	Escalation, Agent Handoff & Fallback Flows	5
+US-10	End-to-End Joint Integration Testing & Partner Simulation	3
+TOTAL		50 Points
+Detailed User Stories
+US-01: Cross-Account IAM & Integration Lambda Setup
+Story Points: 5
+Description: As an IVR Developer, I need to configure the cross-account IAM roles, trust policies, and the primary Integration Lambda function so that Amazon Connect can securely invoke the Bedrock Agent hosted in the Model Execution account.
+Acceptance Criteria:
+Cross-account IAM role created in the Model Execution account with bedrock:InvokeAgent permissions.
+Integration Lambda created in the IVR Account with sts:AssumeRole access.
+Environment variables configured for Cross-Account Role ARN and Bedrock Agent Alias ID.
+Successfully execute a CLI/Lambda test ping returning a 200 OK response from the remote Bedrock agent.
+US-02: DynamoDB Partner Configuration Schema & Lookup Lambda
+Story Points: 3
+Description: As an IVR Developer, I need to design a DynamoDB schema (Partner_Config) and a lookup Lambda so that partner-specific prompts, rules, and branding (e.g., GAP, Airtel, Priceline) can be dynamically loaded at the start of a call based on DNIS.
+Acceptance Criteria:
+DynamoDB table created with PartnerID as Partition Key and attributes for BrandName, InitialGreeting, TTSVoiceID, and ActiveStatus.
+Lambda function created to query DynamoDB using incoming call DNIS / PartnerID.
+Proper fallback/error handling implemented if a DNIS is unmapped or a partner is marked Inactive.
+US-03: Amazon Lex V2 Audio Streaming Catch-All Bot
+Story Points: 5
+Description: As an IVR Developer, I need to configure a lightweight Amazon Lex V2 bot using a fallback intent so that customer speech is captured as clean, raw text without hardcoding static intent branching trees.
+Acceptance Criteria:
+Lex V2 Bot created in the IVR Account and integrated with Amazon Connect.
+Configured AMAZON.FallbackIntent (or custom catch-all) to capture full transcript strings.
+Audio input configured for low-latency streaming speech recognition.
+Output verified in CloudWatch logs showing user speech accurately transcribed into text payload.
+US-04: Master Contact Flow Orchestration & Partner Ingestion
+Story Points: 8
+Description: As an IVR Developer, I need to build the core Amazon Connect Contact Flow that ingests the incoming call, fetches partner dynamic metadata from DynamoDB, sets session attributes, and routes the caller into the main Lex input loop.
+Acceptance Criteria:
+Contact Flow captures incoming DNIS and invokes the Partner Lookup Lambda.
+Contact Flow sets session variables ($.Attributes.PartnerName, $.Attributes.TTSVoice).
+Contact Flow dynamically updates Amazon Polly's voice based on the partner's configuration.
+Contact Flow successfully loops into the Lex Get Customer Input block.
+US-05: Cross-Account Bedrock Agent Invocation & Payload Mapping
+Story Points: 8
+Description: As an IVR Developer, I need to map customer text and partner metadata into the AWS Bedrock InvokeAgent API request structure and send it to the Model Execution Account.
+Acceptance Criteria:
+Lambda formats request to Bedrock InvokeAgent including inputText, sessionId (ContactId), and sessionState (Partner Context variables).
+Request handles asynchronous streaming response chunks from Bedrock.
+End-to-end execution latency between Lambda invocation and Bedrock response payload stays under acceptable voice threshold (< 1.5s).
+US-06: Bedrock Response Parsing & Polly TTS Playback
+Story Points: 5
+Description: As an IVR Developer, I need to parse the JSON text payload returned by the Bedrock Agent and route it to Amazon Connect/Polly to speak the AI's response dynamically back to the customer.
+Acceptance Criteria:
+Lambda extracts final plain text response string from Bedrock payload.
+Text string passed back to Connect contact flow via External attribute parameters.
+Connect Play Prompt block dynamically speaks the Bedrock text output using Polly Neural TTS.
+Smooth transition from speech playback back to listening state without clipping audio.
+US-07: Joint Contract Schema Definition for Bedrock Action Groups
+Story Points: 3
+Description: As an IVR Developer, I need to collaborate with the Model Team to define OpenAPI / JSON schema contracts for Action Groups so the AI Agent can invoke backend fulfillment tasks (e.g., Activation lookup).
+Acceptance Criteria:
+Documented API interface contract (Inputs/Outputs, Data Types, Required Fields) agreed upon by both teams.
+Input parameters mapped (e.g., CustomerPhone, PartnerID, ActivationCode).
+Execution response codes mapped (e.g., SUCCESS, INVALID_PIN, SYSTEM_ERROR).
+US-08: Session Context & Call State Management
+Story Points: 5
+Description: As an IVR Developer, I need to persist conversation context across multiple turns using Amazon Connect ContactId and DynamoDB so that the Bedrock Agent remembers previous steps during the activation journey.
+Acceptance Criteria:
+Connect ContactId mapped 1:1 with Bedrock sessionId.
+Turn history maintained across multi-turn interactions.
+Memory/Context cleanly flushes upon call completion or agent disconnect.
+US-09: Escalation, Agent Handoff & Fallback Flows
+Story Points: 5
+Description: As an IVR Developer, I need to implement error-handling and human escalation flows so that if Bedrock fails or requests a agent transfer, the call is gracefully routed to a human queue with context.
+Acceptance Criteria:
+Lambda detects EscalationFlag or error codes in Bedrock response payload.
+Contact Flow routes caller to target human queue with call attributes attached (Reason for transfer, Partner ID, Conversation summary).
+Fallback prompt played if Bedrock API times out or throws a 5xx error.
+US-10: End-to-End Joint Integration Testing & Partner Simulation
+Story Points: 3
+Description: As an IVR Developer, I need to execute joint integration testing with the Model Team using simulated calls across 3 different partner lines (e.g., GAP, Airtel, Priceline) to validate voice quality, latency, and activation workflows.
+Acceptance Criteria:
+Successfully test activation journeys for 3 distinct partner numbers.
+Verified that partner-specific prompts, voices, and rules adapt strictly based on DNIS without touching Bedrock agent core code.
+Verified error and timeout fallbacks function under simulated system failure.
+
+
+Gemini is AI and can make mistakes.
